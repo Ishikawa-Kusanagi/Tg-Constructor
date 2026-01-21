@@ -3,14 +3,12 @@ services:
     name: tg-constructor-backend
     env: python
     plan: free
-    region: oregon  # или ближайший к тебе
+    region: oregon  # выбери ближайший к тебе регион
     branch: main
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     envVars:
-    - key: BOT_TOKEN
-      fromDatabase: false
-      value: ""
-    - key: CHAT_ID
-      fromDatabase: false
-      value: ""
+      - key: BOT_TOKEN
+        value: ""  # значения задаём через UI Render, не пушим в репозиторий
+      - key: CHAT_ID
+        value: ""  # значения задаём через UI Render

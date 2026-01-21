@@ -3,20 +3,25 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 import requests
+from dotenv import load_dotenv
+import os
+import httpx
+import asyncio
 
-# === Настройки Telegram ===
+load_dotenv()
+
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 
-
-def notify_admin(order):
+async def notify_admin(order):
     text = f"Новый заказ!\nID: {order['id']}\nИмя: {order['customer_name']}\nТелефон: {order['customer_phone']}\nАдрес: {order['customer_address']}\nТовары:\n"
     for item in order["items"]:
         text += f"- Товар ID: {item['product_id']} x {item['quantity']}\n"
-    # Отправляем сообщение в Telegram
-    requests.post(
-        f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-        data={"chat_id": CHAT_ID, "text": text},
-    )
+
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    async with httpx.AsyncClient() as client:
+        await client.post(url, data={"chat_id": CHAT_ID, "text": text})
 
 
 # === Модели данных ===

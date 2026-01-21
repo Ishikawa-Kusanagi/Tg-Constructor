@@ -2,26 +2,29 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
-import requests
-from dotenv import load_dotenv
-import os
 import httpx
 import asyncio
+from dotenv import load_dotenv
+import os
 
+# === Загружаем переменные окружения ===
 load_dotenv()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
 
+# === Функция уведомления Telegram (асинхронно) ===
 async def notify_admin(order):
-    text = f"Новый заказ!\nID: {order['id']}\nИмя: {order['customer_name']}\nТелефон: {order['customer_phone']}\nАдрес: {order['customer_address']}\nТовары:\n"
+    text = f"📦 Новый заказ!\n\nID: {order['id']}\nИмя: {order['customer_name']}\nТелефон: {order['customer_phone']}\nАдрес: {order['customer_address']}\nТовары:\n"
     for item in order["items"]:
         text += f"- Товар ID: {item['product_id']} x {item['quantity']}\n"
 
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
     async with httpx.AsyncClient() as client:
-        await client.post(url, data={"chat_id": CHAT_ID, "text": text})
+        try:
+            await client.post(url, data={"chat_id": CHAT_ID, "text": text})
+        except Exception as e:
+            print("Ошибка отправки Telegram:", e)
 
 
 # === Модели данных ===
@@ -46,7 +49,7 @@ class Order(BaseModel):
     customer_address: str
 
 
-# === Данные (для MVP) ===
+# === Данные (MVP) ===
 products = [
     Product(id=1, name="Суши сет", price=500, description="Вкусно!"),
     Product(
@@ -60,10 +63,9 @@ orders: List[Order] = []
 # === Инициализация FastAPI ===
 app = FastAPI(title="Mini App MVP")
 
-# Разрешаем все источники для локальной разработки
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Для локальной разработки и GH Pages
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,7 +81,8 @@ def get_products():
 @app.post("/orders")
 def create_order(order: Order):
     orders.append(order)
-    notify_admin(order.dict())  # уведомление в Telegram
+    # Отправляем уведомление в фоне, чтобы не блокировать роут
+    asyncio.create_task(notify_admin(order.dict()))
     return {"status": "ok", "order_id": order.id}
 
 

@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: tg-constructor
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: BOT_TOKEN
+        fromDatabase: false
+        value: "твой_бот_токен"
+      - key: CHAT_ID
+        fromDatabase: false
+        value: "твой_chat_id"
+    pythonVersion: "3.11"
